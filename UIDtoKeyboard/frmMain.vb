@@ -1,4 +1,7 @@
-﻿Imports PCSC
+﻿Imports System.IO
+Imports System.Timers
+Imports Microsoft.Win32
+Imports PCSC
 Imports PCSC.Iso7816
 Imports PCSC.Monitoring
 
@@ -9,7 +12,8 @@ Public Class frmMain
     Dim readerName As String
     Dim readingMode As String
     Dim isstart As Boolean = False
-
+    Dim logFile As String = "Log.txt"
+    Shared _timer As System.Timers.Timer
     Function loadReaderList()
         Dim readerList As String()
         Try
@@ -21,13 +25,14 @@ Public Class frmMain
 
             If readerList.Length > 0 Then
                 cbxReaderList.DataSource = readerList
-            Else
-                MessageBox.Show("No card reader detected!", "Message", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)
+                'Else
+                '    MessageBox.Show("No card reader detected!", "Message", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)
             End If
 
             Return True
         Catch ex As Exceptions.PCSCException
-            MessageBox.Show("Error: getReaderList() : " & ex.Message & " (" & ex.SCardError.ToString() & ")")
+            'MessageBox.Show("Error: getReaderList() : " & ex.Message & " (" & ex.SCardError.ToString() & ")")
+            LogError("Error:" + ex.Message)
             Return False
         End Try
     End Function
@@ -35,13 +40,19 @@ Public Class frmMain
     Dim monitor
 
     Private Sub startMonitor()
-        Dim monitorFactory As MonitorFactory = MonitorFactory.Instance
-        monitor = monitorFactory.Create(SCardScope.System)
-        AttachToAllEvents(monitor)
-        monitor.Start(cbxReaderList.Text)
+        Try
+            Dim monitorFactory As MonitorFactory = MonitorFactory.Instance
+            monitor = monitorFactory.Create(SCardScope.System)
+            AttachToAllEvents(monitor)
+            monitor.Start(cbxReaderList.Text)
 
-        readerName = cbxReaderList.Text
-        readingMode = txtReadingMode.Text
+            readerName = cbxReaderList.Text
+            readingMode = txtReadingMode.Text
+            isstart = True
+        Catch ex As Exception
+            LogError("Error:" + ex.Message)
+        End Try
+
     End Sub
 
     Private Sub AttachToAllEvents(monitor As ISCardMonitor)
@@ -52,12 +63,15 @@ Public Class frmMain
         If readingMode = 1 OrElse readingMode = 2 Then
             SendUID4Byte()
         ElseIf readingMode = 3 OrElse readingMode = 4 Then
-            sendUID7Byte()
+            SendUID7Byte()
         End If
     End Sub
 
     Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        loadReaderList()
+        txtReadingMode.Text = 1
+        Start()
+        AddApplicationToStartup()
+        ToolStripMenuItem1.Checked = True
     End Sub
 
     Private Sub btnRefreshReader_Click(sender As Object, e As EventArgs) Handles btnRefreshReader.Click
@@ -65,15 +79,19 @@ Public Class frmMain
     End Sub
 
     Private Sub btnStartMonitor_Click(sender As Object, e As EventArgs) Handles btnStartMonitor.Click
-        If txtReadingMode.Text <> 1 AndAlso txtReadingMode.Text <> 2 AndAlso txtReadingMode.Text <> 3 AndAlso txtReadingMode.Text <> 4 Then
-            MessageBox.Show("Error: Reading mode not macth the preset.")
-        Else
-            If isstart = True Then
-                monitor.Cancel()
+        Try
+            If txtReadingMode.Text <> 1 AndAlso txtReadingMode.Text <> 2 AndAlso txtReadingMode.Text <> 3 AndAlso txtReadingMode.Text <> 4 Then
+                MessageBox.Show("Error: Reading mode not macth the preset.")
+            Else
+                If isstart = True Then
+                    monitor.Cancel()
+                End If
+                startMonitor()
+                isstart = True
             End If
-            startMonitor()
-            isstart = True
-        End If
+        Catch ex As Exception
+            LogError("Error:" + ex.Message)
+        End Try
     End Sub
 
     Private Sub btnStopMonitor_Click(sender As Object, e As EventArgs) Handles btnStopMonitor.Click
@@ -118,7 +136,7 @@ Public Class frmMain
                 End Using
             End Using
         Catch
-            'Error Handling should be developed
+            LogError("Error while SendUID4Byte:")
         End Try
 
         Return True
@@ -160,10 +178,71 @@ Public Class frmMain
                 End Using
             End Using
         Catch
-            'Error Handling should be developed
+            LogError("Error while SendUID4Byte:")
         End Try
 
         Return True
     End Function
 
+    Private Sub NotifyIcon1_MouseDoubleClick(sender As Object, e As MouseEventArgs) Handles NotifyIcon1.MouseDoubleClick
+        Me.Opacity = 1
+        Me.WindowState = FormWindowState.Normal
+    End Sub
+
+    Private Sub frmMain_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
+        If Me.WindowState = FormWindowState.Minimized Then
+            NotifyIcon1.Visible = True
+            NotifyIcon1.ShowBalloonTip(2000)
+            Me.Opacity = 0
+        End If
+    End Sub
+
+    Private Sub LogError(content As String)
+        File.AppendAllText(logFile, DateTime.Now.ToString() + ":" + content + Environment.NewLine)
+    End Sub
+
+    Private Sub ToolStripMenuItem1_Click(sender As Object, e As EventArgs) Handles ToolStripMenuItem1.Click
+        If ToolStripMenuItem1.Checked Then
+            AddApplicationToStartup()
+        Else
+            RemoveApplicationFromStartup()
+        End If
+    End Sub
+
+    Private Sub ToolStripMenuItem2_Click(sender As Object, e As EventArgs) Handles ToolStripMenuItem2.Click
+        Environment.Exit(0)
+    End Sub
+
+    Public Sub AddApplicationToStartup()
+        Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
+            key.SetValue("UIDtoKeyboard", """" & Application.ExecutablePath & """")
+        End Using
+    End Sub
+
+    Public Sub RemoveApplicationFromStartup()
+        Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
+            key.DeleteValue("UIDtoKeyboard", False)
+        End Using
+    End Sub
+
+    Public Sub Start()
+        _timer = New System.Timers.Timer(30000)
+        AddHandler _timer.Elapsed, New ElapsedEventHandler(AddressOf Handler)
+        _timer.Enabled = True
+    End Sub
+
+    Public Sub Handler(ByVal sender As Object, ByVal e As ElapsedEventArgs)
+        loadReaderList()
+        startMonitor()
+        If isstart Then
+            _timer.Enabled = False
+        End If
+    End Sub
+
+    Private Sub frmMain_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        NotifyIcon1.Visible = True
+        NotifyIcon1.ShowBalloonTip(2000)
+        Me.Opacity = 0
+        e.Cancel = True
+    End Sub
 End Class

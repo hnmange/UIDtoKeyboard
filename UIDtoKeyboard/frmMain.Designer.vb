@@ -22,6 +22,8 @@ Partial Class frmMain
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Me.components = New System.ComponentModel.Container()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmMain))
         Me.cbxReaderList = New System.Windows.Forms.ComboBox()
         Me.btnRefreshReader = New System.Windows.Forms.Button()
         Me.btnStartMonitor = New System.Windows.Forms.Button()
@@ -31,6 +33,11 @@ Partial Class frmMain
         Me.lblInst2 = New System.Windows.Forms.Label()
         Me.txtReadingMode = New System.Windows.Forms.TextBox()
         Me.lblReadingMode = New System.Windows.Forms.Label()
+        Me.NotifyIcon1 = New System.Windows.Forms.NotifyIcon(Me.components)
+        Me.ContextMenuStrip1 = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ToolStripMenuItem1 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ToolStripMenuItem2 = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ContextMenuStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
         'cbxReaderList
@@ -120,11 +127,40 @@ Partial Class frmMain
         Me.lblReadingMode.TabIndex = 9
         Me.lblReadingMode.Text = "Reading Mode:"
         '
+        'NotifyIcon1
+        '
+        Me.NotifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info
+        Me.NotifyIcon1.BalloonTipText = "UIDtoKeyboard running"
+        Me.NotifyIcon1.BalloonTipTitle = "UIDtoKeyboard"
+        Me.NotifyIcon1.ContextMenuStrip = Me.ContextMenuStrip1
+        Me.NotifyIcon1.Icon = CType(resources.GetObject("NotifyIcon1.Icon"), System.Drawing.Icon)
+        Me.NotifyIcon1.Text = "UIDtoKeyboard"
+        Me.NotifyIcon1.Visible = True
+        '
+        'ContextMenuStrip1
+        '
+        Me.ContextMenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripMenuItem1, Me.ToolStripMenuItem2})
+        Me.ContextMenuStrip1.Name = "ContextMenuStrip1"
+        Me.ContextMenuStrip1.Size = New System.Drawing.Size(127, 48)
+        '
+        'ToolStripMenuItem1
+        '
+        Me.ToolStripMenuItem1.CheckOnClick = True
+        Me.ToolStripMenuItem1.Name = "ToolStripMenuItem1"
+        Me.ToolStripMenuItem1.Size = New System.Drawing.Size(126, 22)
+        Me.ToolStripMenuItem1.Text = "Auto start"
+        '
+        'ToolStripMenuItem2
+        '
+        Me.ToolStripMenuItem2.Name = "ToolStripMenuItem2"
+        Me.ToolStripMenuItem2.Size = New System.Drawing.Size(126, 22)
+        Me.ToolStripMenuItem2.Text = "Exit"
+        '
         'frmMain
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(810, 551)
+        Me.ClientSize = New System.Drawing.Size(810, 487)
         Me.Controls.Add(Me.lblReadingMode)
         Me.Controls.Add(Me.txtReadingMode)
         Me.Controls.Add(Me.lblInst2)
@@ -134,8 +170,13 @@ Partial Class frmMain
         Me.Controls.Add(Me.btnStartMonitor)
         Me.Controls.Add(Me.btnRefreshReader)
         Me.Controls.Add(Me.cbxReaderList)
+        Me.MaximizeBox = False
+        Me.MinimizeBox = False
         Me.Name = "frmMain"
+        Me.Opacity = 0R
+        Me.ShowInTaskbar = False
         Me.Text = "UIDtoKeyboard"
+        Me.ContextMenuStrip1.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -150,4 +191,8 @@ Partial Class frmMain
     Friend WithEvents lblInst2 As Label
     Friend WithEvents txtReadingMode As TextBox
     Friend WithEvents lblReadingMode As Label
+    Friend WithEvents NotifyIcon1 As NotifyIcon
+    Friend WithEvents ContextMenuStrip1 As ContextMenuStrip
+    Friend WithEvents ToolStripMenuItem1 As ToolStripMenuItem
+    Friend WithEvents ToolStripMenuItem2 As ToolStripMenuItem
 End Class
