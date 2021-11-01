@@ -12,7 +12,7 @@ Public Class frmMain
     Dim readerName As String
     Dim readingMode As String
     Dim isstart As Boolean = False
-    Dim logFile As String = "Log.txt"
+    Dim logFile As String = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "UIDToKeyboard", "Logs", "Log_" + DateTime.Now.ToString("yyyy_MM_dd") + ".txt")
     Shared _timer As System.Timers.Timer
     Function loadReaderList()
         Dim readerList As String()
@@ -198,6 +198,7 @@ Public Class frmMain
     End Sub
 
     Private Sub LogError(content As String)
+        Directory.CreateDirectory(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "UIDToKeyboard", "Logs"))
         File.AppendAllText(logFile, DateTime.Now.ToString() + ":" + content + Environment.NewLine)
     End Sub
 
@@ -214,15 +215,24 @@ Public Class frmMain
     End Sub
 
     Public Sub AddApplicationToStartup()
-        Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
-            key.SetValue("UIDtoKeyboard", """" & Application.ExecutablePath & """")
-        End Using
+        Try
+            Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
+                key.SetValue("UIDtoKeyboard", """" & Application.ExecutablePath & """")
+            End Using
+        Catch ex As Exception
+            LogError("Error while adding to startup:" + ex.Message)
+        End Try
+
     End Sub
 
     Public Sub RemoveApplicationFromStartup()
-        Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
-            key.DeleteValue("UIDtoKeyboard", False)
-        End Using
+        Try
+            Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
+                key.DeleteValue("UIDtoKeyboard", False)
+            End Using
+        Catch ex As Exception
+            LogError("Error while removing from startup:" + ex.Message)
+        End Try
     End Sub
 
     Public Sub Start()
@@ -232,7 +242,9 @@ Public Class frmMain
     End Sub
 
     Public Sub Handler(ByVal sender As Object, ByVal e As ElapsedEventArgs)
+        Threading.Thread.Sleep(2000)
         loadReaderList()
+        Threading.Thread.Sleep(2000)
         startMonitor()
         If isstart Then
             _timer.Enabled = False
@@ -240,9 +252,13 @@ Public Class frmMain
     End Sub
 
     Private Sub frmMain_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        NotifyIcon1.Visible = True
-        NotifyIcon1.ShowBalloonTip(2000)
-        Me.Opacity = 0
-        e.Cancel = True
+        If e.CloseReason = CloseReason.WindowsShutDown Then
+            Environment.Exit(0)
+        Else
+            NotifyIcon1.Visible = True
+            NotifyIcon1.ShowBalloonTip(2000)
+            Me.Opacity = 0
+            e.Cancel = True
+        End If
     End Sub
 End Class
